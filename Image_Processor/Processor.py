@@ -4,6 +4,7 @@ import rembg
 import time
 import webbrowser
 from svgpathtools import Path, Line, wsvg
+import lineGenerator
 
 
 # Capture Image from Webcam
@@ -25,55 +26,36 @@ if not ret:
 # Remove Background Using rembg -- https://www.youtube.com/watch?v=HzwNMYvUXi4
 image_nobg = rembg.remove(image)
 
-if image_nobg is None:
-    print("Error: Image not found. Check the file path!")
-    exit()
-
 # Convert RGBA to BGR 
 image_nobg = cv2.cvtColor(image_nobg, cv2.COLOR_BGRA2BGR)
 
-# Convert to Grayscale
-gray = cv2.cvtColor(image_nobg, cv2.COLOR_BGR2GRAY)
-
-#  Normalize for Better Edge Detection -- Trying to solve the issue where chin is not detected in the image. May be able to solve with lighting
-gray_norm = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
-
+#https://www.datacamp.com/tutorial/face-detection-python-opencv
 face_classifier = cv2.CascadeClassifier(
     cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
 )
 
 face = face_classifier.detectMultiScale(
-    gray_norm, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
+    image_nobg, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
 )
 x_face, y_face, w_face, h_face = face[0]
 print (x_face, y_face, w_face, h_face)
 
-# ✅ (5) Apply CLAHE to Enhance Face Details
-clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
-gray_clahe = clahe.apply(gray_norm)
+lineImage = lineGenerator.lineGenerator(image_nobg)
 
-# ✅ (6) Apply Gaussian Blur to Smooth Edges
 
-blurred = cv2.GaussianBlur(gray_clahe, (9, 9), 0)  # Use a small kernel size
-# ✅ (7) Canny Edge Detection
-edges = cv2.Canny(blurred, 30, 140)  # Adjust the thresholds as needed but this seems the best so far
 
-cv2.imshow('Edges', edges)
 
-# ✅ (8) Find and Filter Contours
-contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-filtered_contours = [cnt for cnt in contours if cv2.contourArea(cnt) > 100]  # Adjust the area threshold as needed
 
-smoothed_contours = [cv2.approxPolyDP(cnt, 0.01 * cv2.arcLength(cnt, True), True) for cnt in filtered_contours]
 
-# Trim lines to keep only points inside the face bounding box
+# ------- Trim lines to keep only points inside the face bounding box ---- WORK IN PROGRESSS
 trimmed_Lines = []
-for contour in smoothed_contours:
+for contour in lineImage:
     for point in contour:
         x, y = point[0]
         # Keep points inside the bounding box
         if x_face <= x <= x_face + w_face and y_face <= y <= y_face + h_face:
             trimmed_Lines.append(point)
+
 
 # Create paths using svgpathtools
 paths = []
