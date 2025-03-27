@@ -35,6 +35,7 @@ face = face_classifier.detectMultiScale(
 )
 for (x_face, y_face, w_face, h_face) in face:
     cv2.rectangle(image_nobg, (x_face, y_face), (x_face + w_face, y_face + h_face), (0, 255, 0), 2)
+    cv2.circle(image_nobg, (x_face, y_face), 5, (0, 255, 0), -1)
 
 cv2.imshow('Face Detection', image_nobg)
 

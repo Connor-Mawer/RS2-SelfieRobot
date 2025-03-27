@@ -42,35 +42,7 @@ print (x_face, y_face, w_face, h_face)
 
 lineImage = lineGenerator.lineGenerator(image_nobg)
 
-
-
-
-
+cv2.imshow('Face Detection', lineImage)
 
 # ------- Trim lines to keep only points inside the face bounding box ---- WORK IN PROGRESSS
-trimmed_Lines = []
-for contour in lineImage:
-    for point in contour:
-        x, y = point[0]
-        # Keep points inside the bounding box
-        if x_face <= x <= x_face + w_face and y_face <= y <= y_face + h_face:
-            trimmed_Lines.append(point)
 
-
-# Create paths using svgpathtools
-paths = []
-for contour in filtered_contours:
-    path = Path()
-    for i in range(len(contour) - 1):
-        start = complex(contour[i][0][0], contour[i][0][1])
-        end = complex(contour[i + 1][0][0], contour[i + 1][0][1])
-        path.append(Line(start, end))
-    paths.append(path)
-
-# Save the paths to an SVG file
-padding = 10  # Add padding around the paths
-viewbox = (x_face - padding, y_face - padding, w_face + 2 * padding, h_face + 2 * padding)
-wsvg(paths, filename='output.svg', dimensions=(w_face, h_face), viewbox=viewbox, stroke_widths=[1] * len(paths))
-
-# Open the SVG file in the default web browser
-webbrowser.open('output.svg')
