@@ -1,29 +1,37 @@
 import cv2
+import numpy as np
+
 def lineGenerator(image):
     # Convert to Grayscale
     gray = cv2.cvtColor(image, cv2.COLOR_BGR2GRAY)
 
-    #  Normalize for Better Edge Detection -- Trying to solve the issue where chin is not detected in the image. May be able to solve with lighting
+    # Normalize for Better Edge Detection
     gray_norm = cv2.normalize(gray, None, 0, 255, cv2.NORM_MINMAX)
 
     # Apply CLAHE to Enhance Face Details
-    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8,8))
+    clahe = cv2.createCLAHE(clipLimit=2.0, tileGridSize=(8, 8))
     gray_clahe = clahe.apply(gray_norm)
 
-    #  Apply Gaussian Blur to Smooth Edges
-    blurred = cv2.GaussianBlur(gray_clahe, (3, 3), 0)  # Use a small kernel size
-    # Canny Edge Detection
-    edges = cv2.Canny(gray_clahe, 50, 140)  # Adjust the thresholds as needed but this seems the best so far
+    # Estimate the Hair Region (Top 20% of the Image)
+    hair_region_height = int(0.3 * gray_clahe.shape[0])  # Top 20% of the image height
+    hair_region = gray_clahe[:hair_region_height, :]  # Crop the top 20% of the image
 
-    cv2.imshow('edges', edges)
+    # Apply Stronger Smoothing to the Hair Region
+    hair_region_blurred = cv2.GaussianBlur(hair_region, (15, 15), 0)  # Stronger blur for fewer edges
+
+    # Replace the Smoothed Hair Region in the Original Image
+    gray_clahe[:hair_region_height, :] = hair_region_blurred
+
+    # Apply Gaussian Blur to the Entire Image (Optional)
+    blurred = cv2.GaussianBlur(gray_clahe, (3, 3), 0)
+
+    # Canny Edge Detection
+    edges = cv2.Canny(blurred, 30, 100)
+
+    # Display the edges for debugging
+    cv2.imshow('Edges with Blurred Hair Region', edges)
     cv2.waitKey(0)
     cv2.destroyAllWindows()
 
 
-    contours, _ = cv2.findContours(edges, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
-    filtered_contours = []
-    for contour in contours:
-        if cv2.contourArea(contour) > 100:  # Adjust the area threshold as needed
-            filtered_contours.append(contour) 
-
-    return filtered_contours
+    return edges

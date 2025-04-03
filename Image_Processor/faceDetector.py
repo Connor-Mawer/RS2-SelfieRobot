@@ -2,43 +2,56 @@ import cv2
 import numpy as np
 import rembg
 import time
-import webbrowser
-from svgpathtools import Path, Line, wsvg
 
+def detect_and_crop_face():
+    # Capture Image from Webcam
+    cap = cv2.VideoCapture(0)  # Ensure Bluetooth is off to avoid conflicts
+    time.sleep(2)  # Necessary delay for the camera to initialize
 
-# Capture Image from Webcam
-cap = cv2.VideoCapture(0)  # Ensure Bluetooth is off (may connect to phone if it is on and cause errors where it tries to take the photo from your iPhone)
-time.sleep(2)  # Necessary delay for the camera to run on my local Mac
+    ret, image = cap.read()
+    cap.release()
 
-ret, image = cap.read()
-cap.release()
-cv2.imshow('initial image', image)
+    if not ret:
+        print("Error: Could not read image from camera.")
+        return None
 
-# Remove Background Using rembg -- https://www.youtube.com/watch?v=HzwNMYvUXi4
-image_nobg = rembg.remove(image)
+    # Remove Background Using rembg
+    image_nobg = rembg.remove(image)
 
-if image_nobg is None:
-    print("Error: Image not found. Check the file path!")
-    exit()
+    if image_nobg is None:
+        print("Error: Image not found. Check the file path!")
+        return None
 
-# Convert RGBA to BGR 
-image_nobg = cv2.cvtColor(image_nobg, cv2.COLOR_BGRA2BGR)
-cv2.imshow('initial image', image_nobg)
+    # Convert RGBA to BGR
+    image_nobg = cv2.cvtColor(image_nobg, cv2.COLOR_BGRA2BGR)
 
-#https://www.datacamp.com/tutorial/face-detection-python-opencv
-face_classifier = cv2.CascadeClassifier(
-    cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
-)
+    # Load Haar Cascade for Face Detection
+    face_classifier = cv2.CascadeClassifier(
+        cv2.data.haarcascades + "haarcascade_frontalface_default.xml"
+    )
 
-face = face_classifier.detectMultiScale(
-    image_nobg, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
-)
-for (x_face, y_face, w_face, h_face) in face:
-    cv2.rectangle(image_nobg, (x_face, y_face), (x_face + w_face, y_face + h_face), (0, 255, 0), 2)
-    cv2.circle(image_nobg, (x_face, y_face), 5, (0, 255, 0), -1)
+    # Detect Faces
+    face = face_classifier.detectMultiScale(
+        image_nobg, scaleFactor=1.1, minNeighbors=5, minSize=(40, 40)
+    )
 
-cv2.imshow('Face Detection', image_nobg)
+    if len(face) == 0:
+        print("No face detected.")
+        return None
 
-# Wait for a key press to close the window
-cv2.waitKey(0)
-cv2.destroyAllWindows()
+    for (x_face, y_face, w_face, h_face) in face:
+        # Expand the cropping space by 10% in each direction
+        x_start = max(0, int(x_face - 0.1 * w_face))
+        y_start = max(0, int(y_face - 0.1 * h_face))
+        x_end = min(image_nobg.shape[1], int(x_face + w_face + 0.1 * w_face))
+        y_end = min(image_nobg.shape[0], int(y_face + h_face + 0.1 * h_face))
+
+        # Crop the expanded face region
+        face_region = image_nobg[y_start:y_end, x_start:x_end]
+
+        # Display the cropped face
+        cv2.imshow('Cropped Face', face_region)
+    cv2.waitKey(0)
+    cv2.destroyAllWindows()
+
+    return face_region  # Return the cropped face region if needed
