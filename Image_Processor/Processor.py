@@ -14,5 +14,4 @@ def ImageProcessor():
     svg = svgSaver.save_as_svg(lineImage, "output.svg")
     return svg
 
-svg = ImageProcessor()
 
