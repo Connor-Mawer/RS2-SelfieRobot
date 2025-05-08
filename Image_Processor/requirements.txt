@@ -3,3 +3,4 @@ numpy
 rembg
 svgwrite
 svgpathtools
+onnxruntime
